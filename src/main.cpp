@@ -5,16 +5,34 @@
 #define DHTPIN 1
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE); 
-
 unsigned long lastDHTReadTime = 0;        //the last time DHT was read
 const unsigned long dhtInterval = 2000;   //breathing for DHT
+float humidity, temp;
+
+//motor
+const int motorIn1 = 25;
+const int motorIn2 = 26;
+const int motorEnA = 27;
+const int freq = 30000;
+const int ledChannel = 0;
+const int resolution = 8;
 
 unsigned long currentTime;
-float humidity, temp;
+
+void closeWindow();
+void openWindow();
+void stopMotor();
 
 void setup(){
   Serial.begin(9600);
   dht.begin();
+
+  pinMode(motorIn1, OUTPUT);
+  pinMode(motorIn2, OUTPUT);
+  pinMode(motorEnA, OUTPUT);
+
+  ledcSetup(ledChannel, freq, resolution);
+  ledcAttachPin(motorEnA, ledChannel);
 }
 
 void loop(){
