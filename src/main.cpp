@@ -20,6 +20,7 @@ const int resolution = 8;
 //MQ-135 gas detector
 const int gasRead = 4; //some analog pin
 int currentGas;
+int contaminatedAirThreshold = 600; // TODO: TUNE THIS VALUE
 
 //rain detector
 const int rainRead = 2; //some digital pin
@@ -45,6 +46,7 @@ const int maxTempPoints = 20;
 float tempHistory[maxTempPoints] = {0.0};
 int tempIndex = 0;
 float tempFluctuation, maxTemp, minTemp;
+float heatwaveThreshold = 34.0;
 
 const int maxHumPoints = 20;
 float humHistory[maxHumPoints] = {0.0};
@@ -53,12 +55,15 @@ float humFluctuation, maxHum, minHum;
 
 //states
 bool windowIsOpen = true;
-bool cardboardWet = false;
+bool cardboardIsWet = false;
+bool humIsHigh = false;
+bool isExtremelyDry = false;
 
 unsigned long currentTime;
 
 void closeWindow();
 void openWindow();
+void checkWindow(String reason);
 void stopMotor();
 void sendPhoneNotification(String reason);
 
@@ -136,15 +141,41 @@ void loop(){
     humFluctuation = maxHum - minHum;
 
     //RAIN: rainRead high + (temperature drop || humidity rise)
-    //if (rainRead == HIGH && (currentHum> 85.0 || )){}
+    cardboardIsWet = (currentRain == HIGH);
+    humIsHigh = (currentHum>= 85.0);
+    if (cardboardIsWet && (humIsHigh || humFluctuation >= 10.0 || tempFluctuation <= 1.5)){
+      Serial.println('ALERT: rain detected');
+      checkWindow("Close the window, RAIN DETECTED!");
+    }
 
     //DUST STORM: humidity drop + light fluctuation
+    isExtremelyDry = (currentHum <= 20.0);
+    if(isExtremelyDry && humFluctuation >= 20.0 && lightFluctuation >= 50.0){
+      Serial.println('ALERT: sandstorm detected');
+      checkWindow("Close the window. SANDSTORM DETECTED!");
+    }
 
-    //GAS: gas sensor
+    //ODOR/SULFUR: gas sensor
+    if(currentGas >= contaminatedAirThreshold){
+      Serial.println("ALERT: contaminated air detected");
+      checkWindow("CLose the Window. CONTAMINATED AIR DETECTED!");
+    }
 
     //EXTREME HEAT: temp high
+    if(currentTemp >= heatwaveThreshold){
+      Serial.println("ALERT: extreme heat detected");
+      checkWindow("CLose the Window. EXTREME HEAT DETECTED!");
+    }
   }
 
+}
+
+void checkWindow(String reason){
+  if(windowIsOpen){
+    closeWindow();
+    sendPhoneNotification(reason);
+    windowIsOpen = false;
+  }
 }
 
 void closeWindow() {
