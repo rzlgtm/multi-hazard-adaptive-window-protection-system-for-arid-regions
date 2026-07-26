@@ -14,7 +14,7 @@ String serverPath = "https://ntfy.sh/" + String(ntfy_topic);
 
 //temperature and humidity sensor init
 const int DHTPIN = 1;
-const int DHTTYPE = DHT11;
+const int DHTTYPE = DHT22;
 DHT dht(DHTPIN, DHTTYPE); 
 float currentHum, currentTemp;
 float initialTemp, initialHum;
