@@ -6,8 +6,6 @@
 const int DHTPIN = 1;
 const int DHTTYPE = DHT11;
 DHT dht(DHTPIN, DHTTYPE); 
-unsigned long lastDHTReadTime = 0;        //the last time DHT was read
-const unsigned long dhtInterval = 2000;   //breathing for DHT
 float currentHum, currentTemp;
 float initialTemp, initialHum;
 
@@ -24,7 +22,7 @@ const int gasRead = 4; //some analog pin
 int currentGas;
 
 //rain detector
-const int rainRead = 2; //some analog pin
+const int rainRead = 2; //some digital pin
 int currentRain;
 
 //photoresistor
@@ -34,27 +32,28 @@ float currentLight;
 
 // trend, history tracking 
 unsigned long lastTrendCheckTime = 0;
-const unsigned long trendInterval = 5000; 
+const unsigned long trendInterval = 30000; 
 
 //light SDT
-const int maxLightPoints = 5;
+const int maxLightPoints = 20;
 float lightHistory[maxLightPoints] = {0.0}; 
 int lightIndex = 0;
 float lightFluctuation, maxLight, minLight;
 
 //temp SDT
-const int maxTempPoints = 5;
+const int maxTempPoints = 20;
 float tempHistory[maxTempPoints] = {0.0};
 int tempIndex = 0;
 float tempFluctuation, maxTemp, minTemp;
 
-const int maxHumPoints = 5;
+const int maxHumPoints = 20;
 float humHistory[maxHumPoints] = {0.0};
 int humIndex = 0;
 float humFluctuation, maxHum, minHum;
 
 //states
 bool windowIsOpen = true;
+bool cardboardWet = false;
 
 unsigned long currentTime;
 
@@ -64,6 +63,7 @@ void stopMotor();
 void sendPhoneNotification(String reason);
 
 int i;
+float tempFlucThreshold;
 
 void setup(){
   Serial.begin(9600);
@@ -100,12 +100,14 @@ void setup(){
 void loop(){
   currentTime = millis();
 
+  while (!windowIsOpen){}; // TODO: logic of confirming a window is closed thru phone/serialmonitor
+
   if (currentTime-lastTrendCheckTime >= trendInterval){
     lastTrendCheckTime = currentTime;
 
     currentLight = analogRead(lightRead);
     currentGas = analogRead(gasRead);
-    currentRain = analogRead(rainRead); // * maybe digitalRead??
+    currentRain = digitalRead(rainRead); 
     currentTemp = dht.readTemperature();
     currentHum = dht.readHumidity();
 
@@ -134,6 +136,7 @@ void loop(){
     humFluctuation = maxHum - minHum;
 
     //RAIN: rainRead high + (temperature drop || humidity rise)
+    //if (rainRead == HIGH && (currentHum> 85.0 || )){}
 
     //DUST STORM: humidity drop + light fluctuation
 
