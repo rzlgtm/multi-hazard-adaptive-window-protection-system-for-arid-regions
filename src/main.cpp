@@ -1,6 +1,16 @@
 #include <Arduino.h>
 #include <DHT.h>
 #include <algorithm>
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+//network details
+HTTPClient http;
+const char* ssid = "H153-381_3A6C";
+const char* password = "hqrcrhtvbx3";
+const char* ntfy_topic = "multi-hazard-window-protection-system"; 
+String serverPath = "https://ntfy.sh/" + String(ntfy_topic);
+
 
 //temperature and humidity sensor init
 const int DHTPIN = 1;
@@ -81,6 +91,16 @@ int i;
 
 void setup(){
   Serial.begin(9600);
+  
+  //connecting to wifi
+  Serial.print("Connecting to Wi-Fi");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Wi-Fi!");
+
   dht.begin();
 
   pinMode(motorIn1, OUTPUT);
@@ -210,7 +230,29 @@ void stopMotor() {
 }
 
 void sendPhoneNotification(String reason){
-  Serial.print(F('[NOTIFICATION SENT]: ')); Serial.println(reason); // ! add an actual notification
+  Serial.print(F('[NOTIFICATION SENDING]: ')); Serial.println(reason); 
+  if (WiFi.status() == WL_CONNECTED) {
+    http.begin(serverPath);
+      
+    http.addHeader("Content-Type", "text/plain");
+    http.addHeader("X-Title", "Window Alert");
+    http.addHeader("X-Priority", "3"); 
+
+      //send the POST request
+    int httpResponseCode = http.POST(reason);
+      
+    if (httpResponseCode > 0) {
+      Serial.print("Notification sent successfully. Response code: ");
+      Serial.println(httpResponseCode);
+    } else {
+      Serial.print("Error sending POST request: ");
+      Serial.println(httpResponseCode);
+    }
+      
+      http.end();
+    } else {
+    Serial.println("WiFi Disconnected. Cannot send notification.");
+  }
 }
 
 float getFilteredLight() {
