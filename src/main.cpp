@@ -118,4 +118,31 @@ void loop(){
 
     //EXTREME HEAT: temp high
   }
+
+}
+
+void closeWindow() {
+  analogWrite(motorEnA, 150);
+  digitalWrite(motorIn1, HIGH);
+  digitalWrite(motorIn2, LOW);
+  delay(3000); // * force sensor?
+  stopMotor();
+}
+
+void openWindow() {
+  analogWrite(motorEnA, 150);
+  digitalWrite(motorIn1, LOW);
+  digitalWrite(motorIn2, HIGH);
+  delay(3000);
+  stopMotor();
+}
+
+void stopMotor() {
+  digitalWrite(motorIn1, LOW);
+  digitalWrite(motorIn2, LOW);
+  analogWrite(motorEnA, 0);
+}
+
+void sendPhoneNotification(String reason){
+  Serial.print(F('[NOTIFICATION SENT]: ')); Serial.println(reason); // ! add actual notification
 }
