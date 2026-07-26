@@ -67,8 +67,17 @@ void checkWindow(String reason);
 void stopMotor();
 void sendPhoneNotification(String reason);
 
+//median filtering
+float getFilteredLight();
+float getFilteredTemp();
+float getFilteredHum();
+int getMedian(int num);
+int lightSamples = 11;
+int tempSamples = 3;
+int humSamples = 3;
+
+//dummy var
 int i;
-float tempFlucThreshold;
 
 void setup(){
   Serial.begin(9600);
@@ -110,11 +119,11 @@ void loop(){
   if (currentTime-lastTrendCheckTime >= trendInterval){
     lastTrendCheckTime = currentTime;
 
-    currentLight = analogRead(lightRead);
+    currentLight = getFilteredLight();
     currentGas = analogRead(gasRead);
     currentRain = digitalRead(rainRead); 
-    currentTemp = dht.readTemperature();
-    currentHum = dht.readHumidity();
+    currentTemp = getFilteredTemp();
+    currentHum = getFilteredHum();
 
     //recording light trend
     lightHistory[lightIndex] = currentLight;
@@ -201,5 +210,39 @@ void stopMotor() {
 }
 
 void sendPhoneNotification(String reason){
-  Serial.print(F('[NOTIFICATION SENT]: ')); Serial.println(reason); // ! add actual notification
+  Serial.print(F('[NOTIFICATION SENT]: ')); Serial.println(reason); // ! add an actual notification
+}
+
+float getFilteredLight() {
+  float readings[lightSamples];
+  for (i = 0; i < lightSamples; i++) {
+    readings[i] = analogRead(lightRead);
+    delay(10); // 10ms gap between rapid samples
+  }
+  std::sort(readings, readings + lightSamples);
+  return readings[getMedian(lightSamples)]; //return the median value
+}
+
+float getFilteredTemp() {
+  float readings[tempSamples];
+  for (i = 0; i < tempSamples; i++) {
+    readings[i] = dht.readTemperature();
+    delay(150);
+  }
+  std::sort(readings, readings + tempSamples);
+  return readings[getMedian(tempSamples)]; 
+}
+
+float getFilteredHum() {
+  float readings[humSamples];
+  for (i = 0; i < humSamples; i++) {
+    readings[i] = dht.readHumidity();
+    delay(150);
+  }
+  std::sort(readings, readings + humSamples);
+  return readings[getMedian(humSamples)];
+}
+
+int getMedian(int num){
+  return (num+1)/2;
 }
