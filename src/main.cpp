@@ -33,9 +33,11 @@ int currentLight;
 // trend, history tracking 
 unsigned long lastTrendCheckTime = 0;
 const unsigned long trendInterval = 5000; 
-int lightHistory[5] = {0};                 // sliding window for light fluctuations
+
+const int maxLightPoints = 5;
+int lightHistory[maxLightPoints] = {0};                 // sliding window for light fluctuations
 int lightIndex = 0;
-int baselineLight = 0;
+int lightFluctuation, maxLight, minLight;
 
 //states
 bool windowIsOpen = true;
@@ -47,6 +49,7 @@ void openWindow();
 void stopMotor();
 void sendPhoneNotification(String reason);
 
+int i;
 
 void setup(){
   Serial.begin(9600);
@@ -63,9 +66,9 @@ void setup(){
   pinMode(rainRead, INPUT);
   pinMode(lightRead, INPUT);
 
-  //TODO: light level baseline for swinging door trending algorithm
+  // light level baseline
   initialLight = analogRead(lightRead);
-  for(int i = 0; i < 5; i++) {
+  for(i = 0; i < 5; i++) {
     lightHistory[i] = initialLight;
   }
 }
@@ -94,7 +97,25 @@ void loop(){
     currentGas = analogRead(gasRead);
     currentRain = analogRead(rainRead); // * maybe digitalRead??
 
+    //recording light trend
+    lightHistory[lightIndex] = currentLight;
+    lightIndex = (lightIndex + 1) % maxLightPoints; //circular buffer
 
+    //finding variance in light readings
+    maxLight = lightHistory[0];
+    minLight = lightHistory[0];
+    for (i = 1; i < maxLightPoints; i++){
+      if (lightHistory[i] > maxLight) maxLight = lightHistory[i];
+      if (lightHistory[i] < minLight) minLight = lightHistory[i];
+    }
+    lightFluctuation = maxLight - minLight;
+
+    //RAIN: rainRead high + (temperature drop || humidity rise)
+
+    //DUST STORM: humidity drop + light fluctuation
+
+    //GAS: gas sensor
+
+    //EXTREME HEAT: temp high
   }
-
 }
