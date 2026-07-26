@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <DHT.h>
+#include <algorithm>
 
 //temperature and humidity sensor init
 const int DHTPIN = 1;
@@ -7,7 +8,8 @@ const int DHTTYPE = DHT11;
 DHT dht(DHTPIN, DHTTYPE); 
 unsigned long lastDHTReadTime = 0;        //the last time DHT was read
 const unsigned long dhtInterval = 2000;   //breathing for DHT
-float humidity, temp;
+float currentHum, currentTemp;
+float initialTemp, initialHum;
 
 //motor
 const int motorIn1 = 25;
@@ -27,17 +29,29 @@ int currentRain;
 
 //photoresistor
 const int lightRead = 3; //some analog pin
-int initialLight;
-int currentLight;
+float initialLight;
+float currentLight;
 
 // trend, history tracking 
 unsigned long lastTrendCheckTime = 0;
 const unsigned long trendInterval = 5000; 
 
+//light SDT
 const int maxLightPoints = 5;
-int lightHistory[maxLightPoints] = {0};                 // sliding window for light fluctuations
+float lightHistory[maxLightPoints] = {0.0}; 
 int lightIndex = 0;
-int lightFluctuation, maxLight, minLight;
+float lightFluctuation, maxLight, minLight;
+
+//temp SDT
+const int maxTempPoints = 5;
+float tempHistory[maxTempPoints] = {0.0};
+int tempIndex = 0;
+float tempFluctuation, maxTemp, minTemp;
+
+const int maxHumPoints = 5;
+float humHistory[maxHumPoints] = {0.0};
+int humIndex = 0;
+float humFluctuation, maxHum, minHum;
 
 //states
 bool windowIsOpen = true;
@@ -68,27 +82,23 @@ void setup(){
 
   // light level baseline
   initialLight = analogRead(lightRead);
-  for(i = 0; i < 5; i++) {
+  for(i = 0; i < maxLightPoints; i++) {
     lightHistory[i] = initialLight;
+  }
+  //temp baseline
+  initialTemp = dht.readTemperature();
+  for(i = 0; i< maxTempPoints; i++) { 
+    tempHistory[i] = initialTemp;
+  }
+  // humidity baseline
+  initialHum = dht.readHumidity();
+  for(i = 0; i< maxHumPoints; i++) { 
+    humHistory[i] = initialHum;
   }
 }
 
 void loop(){
-
   currentTime = millis();
-  if (currentTime - lastDHTReadTime >= dhtInterval){
-    lastDHTReadTime = currentTime;
-    humidity = dht.readHumidity();
-    temp = dht.readTemperature();
-
-    //telemetry
-    if (isnan(humidity) || isnan(temp)) {
-      Serial.println(F("failed to read from h&t sensor"));
-    } else {
-      Serial.print(F("Humidity: ")); Serial.print(humidity);
-      Serial.print(F("%  Temperature: ")); Serial.print(temp); Serial.println(F("°C"));
-    }
-  }
 
   if (currentTime-lastTrendCheckTime >= trendInterval){
     lastTrendCheckTime = currentTime;
@@ -96,19 +106,32 @@ void loop(){
     currentLight = analogRead(lightRead);
     currentGas = analogRead(gasRead);
     currentRain = analogRead(rainRead); // * maybe digitalRead??
+    currentTemp = dht.readTemperature();
+    currentHum = dht.readHumidity();
 
     //recording light trend
     lightHistory[lightIndex] = currentLight;
     lightIndex = (lightIndex + 1) % maxLightPoints; //circular buffer
+    auto lightResult = std::minmax_element(lightHistory, lightHistory + maxLightPoints);
+    maxLight = *lightResult.second;
+    minLight = *lightResult.first;
+    lightFluctuation = maxLight - minLight;  //finding variance in light readings
 
-    //finding variance in light readings
-    maxLight = lightHistory[0];
-    minLight = lightHistory[0];
-    for (i = 1; i < maxLightPoints; i++){
-      if (lightHistory[i] > maxLight) maxLight = lightHistory[i];
-      if (lightHistory[i] < minLight) minLight = lightHistory[i];
-    }
-    lightFluctuation = maxLight - minLight;
+    //recording temp trend
+    tempHistory[tempIndex] = currentTemp;
+    tempIndex = (tempIndex+1)%maxTempPoints;
+    auto tempResult = std::minmax_element(tempHistory, tempHistory + maxTempPoints);
+    maxTemp = *tempResult.second;
+    minTemp = *tempResult.first;
+    tempFluctuation = maxTemp - minTemp;
+
+    //recording humidity trend
+    humHistory[humIndex] = currentHum;
+    humIndex = (humIndex + 1)%maxHumPoints;
+    auto humResult = std::minmax_element(humHistory, humHistory + maxHumPoints);
+    maxHum = *humResult.second;
+    minHum = *humResult.first;
+    humFluctuation = maxHum - minHum;
 
     //RAIN: rainRead high + (temperature drop || humidity rise)
 
