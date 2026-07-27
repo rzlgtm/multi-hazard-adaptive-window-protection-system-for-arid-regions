@@ -13,7 +13,7 @@ String serverPath = "https://ntfy.sh/" + String(ntfy_topic);
 
 
 //temperature and humidity sensor init
-const int DHTPIN = 1;
+const int DHTPIN = 32;
 const int DHTTYPE = DHT22;
 DHT dht(DHTPIN, DHTTYPE); 
 float currentHum, currentTemp;
@@ -28,9 +28,9 @@ const int ledChannel = 0;
 const int resolution = 8;
 
 //MQ-135 gas detector
-const int gasRead = 4; //some analog pin
-int currentGas;
-int contaminatedAirThreshold = 600; // TODO: TUNE THIS VALUE
+const int gasRead = 34; //some analog pin
+float currentGas;
+float contaminatedAirThreshold = 600.0; // TODO: TUNE THIS VALUE
 
 //rain detector
 const int rainRead = 2; //some digital pin
@@ -81,10 +81,12 @@ void sendPhoneNotification(String reason);
 float getFilteredLight();
 float getFilteredTemp();
 float getFilteredHum();
+float getFilteredGas();
 int getMedian(int num);
 int lightSamples = 11;
 int tempSamples = 3;
 int humSamples = 3;
+int gasSamples = 9;
 
 //dummy var
 int i;
@@ -140,7 +142,7 @@ void loop(){
     lastTrendCheckTime = currentTime;
 
     currentLight = getFilteredLight();
-    currentGas = analogRead(gasRead);
+    currentGas = getFilteredGas();
     currentRain = digitalRead(rainRead); 
     currentTemp = getFilteredTemp();
     currentHum = getFilteredHum();
@@ -172,15 +174,15 @@ void loop(){
     //RAIN: rainRead high + (temperature drop || humidity rise)
     cardboardIsWet = (currentRain == HIGH);
     humIsHigh = (currentHum>= 85.0);
-    if (cardboardIsWet && (humIsHigh || humFluctuation >= 10.0 || tempFluctuation <= 1.5)){
-      Serial.println('ALERT: rain detected');
+    if (cardboardIsWet && (humIsHigh || lightFluctuation >= 500.0 || tempFluctuation >= 1.5)){
+      Serial.println("ALERT: rain detected");
       checkWindow("Close the window, RAIN DETECTED!");
     }
 
     //DUST STORM: humidity drop + light fluctuation
     isExtremelyDry = (currentHum <= 20.0);
-    if(isExtremelyDry && humFluctuation >= 20.0 && lightFluctuation >= 50.0){
-      Serial.println('ALERT: sandstorm detected');
+    if(isExtremelyDry && humFluctuation >= 20.0 && lightFluctuation >= 200.0){
+      Serial.println("ALERT: sandstorm detected");
       checkWindow("Close the window. SANDSTORM DETECTED!");
     }
 
@@ -230,7 +232,7 @@ void stopMotor() {
 }
 
 void sendPhoneNotification(String reason){
-  Serial.print(F('[NOTIFICATION SENDING]: ')); Serial.println(reason); 
+  Serial.print(F("[NOTIFICATION SENDING]: ")); Serial.println(reason); 
   if (WiFi.status() == WL_CONNECTED) {
     http.begin(serverPath);
       
@@ -259,7 +261,7 @@ float getFilteredLight() {
   float readings[lightSamples];
   for (i = 0; i < lightSamples; i++) {
     readings[i] = analogRead(lightRead);
-    delay(10); // 10ms gap between rapid samples
+    delay(200); 
   }
   std::sort(readings, readings + lightSamples);
   return readings[getMedian(lightSamples)]; //return the median value
@@ -269,7 +271,7 @@ float getFilteredTemp() {
   float readings[tempSamples];
   for (i = 0; i < tempSamples; i++) {
     readings[i] = dht.readTemperature();
-    delay(200);
+    delay(2000);
   }
   std::sort(readings, readings + tempSamples);
   return readings[getMedian(tempSamples)]; 
@@ -279,10 +281,20 @@ float getFilteredHum() {
   float readings[humSamples];
   for (i = 0; i < humSamples; i++) {
     readings[i] = dht.readHumidity();
-    delay(200);
+    delay(2000);
   }
   std::sort(readings, readings + humSamples);
   return readings[getMedian(humSamples)];
+}
+
+float getFilteredGas(){
+  float readings[gasSamples];
+  for (i = 0; i < gasSamples; i++) {
+    readings[i] = analogRead(gasRead);
+    delay(200);
+  }
+  std::sort(readings, readings + gasSamples);
+  return readings[getMedian(gasSamples)];
 }
 
 int getMedian(int num){
