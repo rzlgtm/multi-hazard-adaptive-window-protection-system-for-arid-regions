@@ -269,7 +269,7 @@ float getFilteredTemp() {
   float readings[tempSamples];
   for (i = 0; i < tempSamples; i++) {
     readings[i] = dht.readTemperature();
-    delay(150);
+    delay(200);
   }
   std::sort(readings, readings + tempSamples);
   return readings[getMedian(tempSamples)]; 
@@ -279,7 +279,7 @@ float getFilteredHum() {
   float readings[humSamples];
   for (i = 0; i < humSamples; i++) {
     readings[i] = dht.readHumidity();
-    delay(150);
+    delay(200);
   }
   std::sort(readings, readings + humSamples);
   return readings[getMedian(humSamples)];
