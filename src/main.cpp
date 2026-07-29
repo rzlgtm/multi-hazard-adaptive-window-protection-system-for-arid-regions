@@ -11,6 +11,8 @@ const char* password = "hqrcrhtvbx3";
 const char* ntfy_topic = "multi-hazard-window-protection-system"; 
 String serverPath = "https://ntfy.sh/" + String(ntfy_topic);
 
+//button
+const int limitSwitchPin = 21; 
 
 //temperature and humidity sensor init
 const int DHTPIN = 32;
@@ -70,6 +72,9 @@ bool humIsHigh = false;
 bool isExtremelyDry = false;
 
 unsigned long currentTime;
+//safety timeout
+unsigned long closeStartTime;
+const unsigned long maxCloseTime = 30000;
 
 void closeWindow();
 void openWindow();
@@ -115,6 +120,7 @@ void setup(){
   pinMode(gasRead, INPUT);
   pinMode(rainRead, INPUT);
   pinMode(lightRead, INPUT);
+  pinMode(limitSwitchPin, INPUT_PULLUP);
 
   // light level baseline
   initialLight = analogRead(lightRead);
@@ -210,20 +216,20 @@ void checkWindow(String reason){
 }
 
 void closeWindow() {
-  analogWrite(motorEnA, 150);
   digitalWrite(motorIn1, HIGH);
   digitalWrite(motorIn2, LOW);
-  delay(3000); // * force sensor?
+  closeStartTime = millis();
+
+  while (digitalRead(limitSwitchPin) == HIGH) {
+    if (millis() - closeStartTime > maxCloseTime) {
+      Serial.println(F("limit switch timeout reached!"));
+      break;
+    }
+    delay(50);
+  }
   stopMotor();
 }
 
-void openWindow() {
-  analogWrite(motorEnA, 150);
-  digitalWrite(motorIn1, LOW);
-  digitalWrite(motorIn2, HIGH);
-  delay(3000);
-  stopMotor();
-}
 
 void stopMotor() {
   digitalWrite(motorIn1, LOW);

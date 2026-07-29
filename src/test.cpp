@@ -119,6 +119,15 @@ void loop() {
     } else {
       Serial.println(F("LOW (dry)"));
     }
+    
+    Serial.println(F("motor test: reverse"));
+    digitalWrite(motorIn1, HIGH);
+    digitalWrite(motorIn2, LOW);
+    delay(10000);
+    
+    digitalWrite(motorIn1, LOW);
+    digitalWrite(motorIn2, LOW);
+    analogWrite(motorEnA, 0);
   }
 }
 
