@@ -16,15 +16,16 @@ const int limitSwitchPin = 21;
 
 //temperature and humidity sensor init
 const int DHTPIN = 32;
-const int DHTTYPE = DHT22;
+const int DHTTYPE = DHT11;
 DHT dht(DHTPIN, DHTTYPE); 
 float currentHum, currentTemp;
 float initialTemp, initialHum;
 
 //motor
-const int motorIn1 = 25;
-const int motorIn2 = 26;
-const int motorEnA = 27;
+const int motorIn1 = 17;
+const int motorIn2 = 16;
+const int motorEnB = 4;
+const int STBY = 22;   
 const int freq = 30000;
 const int ledChannel = 0;
 const int resolution = 8;
@@ -32,7 +33,7 @@ const int resolution = 8;
 //MQ-135 gas detector
 const int gasRead = 34; //some analog pin
 float currentGas;
-float contaminatedAirThreshold = 600.0; // TODO: TUNE THIS VALUE
+float contaminatedAirThreshold = 1500.0; 
 
 //rain detector
 const int rainRead = 2; //some digital pin
@@ -112,10 +113,16 @@ void setup(){
 
   pinMode(motorIn1, OUTPUT);
   pinMode(motorIn2, OUTPUT);
-  pinMode(motorEnA, OUTPUT);
+  pinMode(motorEnB, OUTPUT);
+  pinMode(STBY, OUTPUT);
+  digitalWrite(STBY, HIGH);
 
-  ledcSetup(ledChannel, freq, resolution);
-  ledcAttachPin(motorEnA, ledChannel);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    ledcAttach(motorEnB, freq, resolution);
+  #else
+    ledcSetup(ledChannel, freq, resolution);
+    ledcAttachPin(motorEnB, ledChannel);
+  #endif
 
   pinMode(gasRead, INPUT);
   pinMode(rainRead, INPUT);
@@ -218,6 +225,11 @@ void checkWindow(String reason){
 void closeWindow() {
   digitalWrite(motorIn1, HIGH);
   digitalWrite(motorIn2, LOW);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    ledcWrite(motorEnB, 60);
+  #else
+    ledcWrite(ledChannel, 60);
+  #endif 
   closeStartTime = millis();
 
   while (digitalRead(limitSwitchPin) == HIGH) {
@@ -234,7 +246,11 @@ void closeWindow() {
 void stopMotor() {
   digitalWrite(motorIn1, LOW);
   digitalWrite(motorIn2, LOW);
-  analogWrite(motorEnA, 0);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    ledcWrite(motorEnB, 0);
+  #else
+    ledcWrite(ledChannel, 0);
+  #endif
 }
 
 void sendPhoneNotification(String reason){
