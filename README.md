@@ -2,6 +2,8 @@
 
 An automated, IoT-enabled window protection system powered by an **ESP32** microcontroller. This project monitors environmental hazards in real-time—including rain, dust/sandstorms, hazardous gases, and extreme heat—and automatically closes or opens a window using a DC motor while sending instant push notifications via ntfy.sh.
 
+<a href= 'https://youtu.be/_L7gEJOztdI'>Video Presentation</a>
+
 ---
 
 ## Features
