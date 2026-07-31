@@ -13,7 +13,7 @@ An automated, IoT-enabled window protection system powered by an **ESP32** micro
 * **Extreme Heat:** Tracks temperature spikes exceeding predefined heatwave limits.
 
 
-* **Smart Data Filtering:** Implements custom median-filtering and circular buffer trend tracking (min/max variance) to prevent false triggers from sensor noise.
+* **Data Filtering:** Implements median-filtering and circular buffer trend tracking (min/max variance) to prevent false triggers from sensor noise.
 * **IoT Push Notifications:** Integrates with `ntfy.sh` over Wi-Fi to send instant alert messages directly to your phone or desktop.
 * **Mechanical Safety:** Incorporates a physical limit switch and a safety timeout mechanism to protect the window mechanism and motor hardware.
 
