@@ -23,16 +23,14 @@ An automated, IoT-enabled window protection system powered by an **ESP32** micro
 
 * **Microcontroller:** ESP32 Development Board
 * **Sensors:**
-* DHT22
-* MQ-Series Gas Sensor (MQ-135)
-* Rain Sensor Module(2 wires with a 10K ohm pull-down resistor, short circuited by water drops)
-* Photoresistor (LDR) with analog circuit
-
+  * DHT22
+  * MQ-Series Gas Sensor (MQ-135)
+  * Rain Sensor Module(2 wires with a 10K ohm pull-down resistor, short circuited by water drops)
+  * Photoresistor (LDR) with analog circuit
 
 * **Actuators & Control:**
-* DC Motor with Motor Driver (TB6612FNG)
-* Mechanical Limit Switch (4-pin Button)
-
+  * DC Motor with Motor Driver (TB6612FNG)
+  * Mechanical Limit Switch (4-pin Button)
 
 
 ---
