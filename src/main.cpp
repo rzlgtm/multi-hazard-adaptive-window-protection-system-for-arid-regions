@@ -110,6 +110,7 @@ void setup(){
   Serial.println("\nConnected to Wi-Fi!");
 
   dht.begin();
+  delay(2000);
 
   pinMode(motorIn1, OUTPUT);
   pinMode(motorIn2, OUTPUT);
@@ -124,13 +125,7 @@ void setup(){
     ledcAttachPin(motorEnB, ledChannel);
   #endif
 
-  digitalWrite(motorIn1, LOW);
-  digitalWrite(motorIn2, LOW);
-  #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
-    ledcWrite(motorEnB, 0);
-  #else
-    ledcWrite(ledChannel, 0);
-  #endif
+  stopMotor();
 
   pinMode(gasRead, INPUT);
   pinMode(rainRead, INPUT);
@@ -157,7 +152,9 @@ void setup(){
 void loop(){
   currentTime = millis();
 
-  while(digitalRead(limitSwitchPin) == LOW){}
+  while(digitalRead(limitSwitchPin) == LOW){
+    stopMotor();
+  }
 
   if (currentTime-lastTrendCheckTime >= trendInterval){
     lastTrendCheckTime = currentTime;
