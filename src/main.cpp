@@ -15,8 +15,8 @@ String serverPath = "https://ntfy.sh/" + String(ntfy_topic);
 const int limitSwitchPin = 21; 
 
 //temperature and humidity sensor init
-const int DHTPIN = 32;
-const int DHTTYPE = DHT11;
+const int DHTPIN = 14;
+const int DHTTYPE = DHT22;
 DHT dht(DHTPIN, DHTTYPE); 
 float currentHum, currentTemp;
 float initialTemp, initialHum;
@@ -31,16 +31,16 @@ const int ledChannel = 0;
 const int resolution = 8;
 
 //MQ-135 gas detector
-const int gasRead = 34; //some analog pin
+const int gasRead = 33; //some analog pin
 float currentGas;
 float contaminatedAirThreshold = 1500.0; 
 
 //rain detector
-const int rainRead = 2; //some digital pin
+const int rainRead = 34; //some digital pin
 int currentRain;
 
 //photoresistor
-const int lightRead = 3; //some analog pin
+const int lightRead = 35; //some analog pin
 float initialLight;
 float currentLight;
 
@@ -124,6 +124,14 @@ void setup(){
     ledcAttachPin(motorEnB, ledChannel);
   #endif
 
+  digitalWrite(motorIn1, LOW);
+  digitalWrite(motorIn2, LOW);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    ledcWrite(motorEnB, 0);
+  #else
+    ledcWrite(ledChannel, 0);
+  #endif
+
   pinMode(gasRead, INPUT);
   pinMode(rainRead, INPUT);
   pinMode(lightRead, INPUT);
@@ -149,7 +157,7 @@ void setup(){
 void loop(){
   currentTime = millis();
 
-  while (!windowIsOpen){}; // TODO: logic of confirming a window is closed thru phone/serialmonitor
+  while(digitalRead(limitSwitchPin) == LOW){}
 
   if (currentTime-lastTrendCheckTime >= trendInterval){
     lastTrendCheckTime = currentTime;
@@ -187,7 +195,7 @@ void loop(){
     //RAIN: rainRead high + (temperature drop || humidity rise)
     cardboardIsWet = (currentRain == HIGH);
     humIsHigh = (currentHum>= 85.0);
-    if (cardboardIsWet && (humIsHigh || lightFluctuation >= 500.0 || tempFluctuation >= 1.5)){
+    if (cardboardIsWet){ //&& (humIsHigh || lightFluctuation >= 500.0 || tempFluctuation >= 1.5) --> difficult to demonstrate indoors, so commented out
       Serial.println("ALERT: rain detected");
       checkWindow("Close the window, RAIN DETECTED!");
     }
@@ -223,8 +231,8 @@ void checkWindow(String reason){
 }
 
 void closeWindow() {
-  digitalWrite(motorIn1, HIGH);
-  digitalWrite(motorIn2, LOW);
+  digitalWrite(motorIn1,  LOW);
+  digitalWrite(motorIn2, HIGH);
   #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     ledcWrite(motorEnB, 60);
   #else
@@ -233,6 +241,7 @@ void closeWindow() {
   closeStartTime = millis();
 
   while (digitalRead(limitSwitchPin) == HIGH) {
+    Serial.println(digitalRead(limitSwitchPin));
     if (millis() - closeStartTime > maxCloseTime) {
       Serial.println(F("limit switch timeout reached!"));
       break;
@@ -320,5 +329,5 @@ float getFilteredGas(){
 }
 
 int getMedian(int num){
-  return (num+1)/2;
+  return (num)/2;
 }
