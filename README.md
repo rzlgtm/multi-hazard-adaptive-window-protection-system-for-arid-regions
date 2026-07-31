@@ -1,42 +1,88 @@
-# Multi-Hazard Adaptive Window Protection System for Arid and Dust-Prone Regions
-An intelligent, climate-responsive window automation system engineered specifically to combat local environmental challenges such as severe dust storms and extreme high ambient temperatures (exceeding $42^\circ\text{C}$). Designed with strict contest compliance in mind, the system operates on a single microcontroller and a unified power architecture.
+# Multi-Hazard Window Protection System
+
+An automated, IoT-enabled window protection system powered by an **ESP32** microcontroller. This project monitors environmental hazards in real-time—including rain, dust/sandstorms, hazardous gases, and extreme heat—and automatically closes or opens a window using a DC motor while sending instant push notifications via ntfy.sh.
 
 ---
 
-## Key Features
+## Features
 
-* **Climate-Adaptive Automation:** Automatically detects particulate spikes (dust storms) via an MQ air quality sensor to seal the window and protect indoor spaces.
-* **Contest Rule Compliant:** Built strictly around a **single microcontroller** (ESP32) and a **single power source** (3-cell 18650 battery pack) to satisfy all technical inspection requirements.
-* **Optimized Mechanical Drive:** Utilizes an **Ultra-Short Crank Linkage** designed in Fusion 360, paired with a JGA25-370 gear motor.
-* **Software Safety Safeguards:** Implements ESP32 PWM (Pulse Width Modulation) control to cap motor speed, preventing sudden physical shock loads and protecting the internal gearbox.
+* **Automated Hazard Detection:**
+* **Rain:** Detects moisture and triggers closure based on rain sensor signals.
+* **Dust/Sandstorms:** Monitors humidity drops and light fluctuations to identify extreme dry conditions.
+* **Contaminated Air/Odor:** Utilizes an MQ-series gas sensor to detect sulfurous air.
+* **Extreme Heat:** Tracks temperature spikes exceeding predefined heatwave limits.
+
+
+* **Smart Data Filtering:** Implements custom median-filtering and circular buffer trend tracking (min/max variance) to prevent false triggers from sensor noise.
+* **IoT Push Notifications:** Integrates with `ntfy.sh` over Wi-Fi to send instant alert messages directly to your phone or desktop.
+* **Mechanical Safety:** Incorporates a physical limit switch and a safety timeout mechanism to protect the window mechanism and motor hardware.
 
 ---
 
-## Materials
+## Hardware Components
 
-| Component | Description | Function |
+* **Microcontroller:** ESP32 Development Board
+* **Sensors:**
+* DHT22
+* MQ-Series Gas Sensor (MQ-135)
+* Rain Sensor Module(2 wires with a 10K ohm pull-down resistor, short circuited by water drops)
+* Photoresistor (LDR) with analog circuit
+
+
+* **Actuators & Control:**
+* DC Motor with Motor Driver (TB6612FNG)
+* Mechanical Limit Switch (4-pin Button)
+
+
+
+---
+
+## Pinout Mapping
+
+| Component | ESP32 Pin | Description |
 | --- | --- | --- |
-| **Microcontroller** | ESP32 Development Board | Central processing unit and logic controller |
-| **Motor Driver** | L298N Dual H-Bridge Driver | Handles motor power switching and onboard 5V regulation |
-| **Actuator** | JGA25-370 DC Gear Motor (620 RPM) | Provides mechanical torque for window actuation |
-| **Air Quality Sensor** | MQ Sensor (e.g., MQ-135) | Detects dust particles and environmental pollution |
-| **Power Source** | 3x 18650 Li-Ion Cells (in a 4-cell holder) | Unified power supply providing ~11.1V nominal |
+| **Limit Switch** | GPIO 21 | Safety stop switch (INPUT_PULLUP) |
+| **DHT Sensor** | GPIO 14 | Temperature and humidity data line |
+| **Motor IN1** | GPIO 17 | Motor direction control 1 |
+| **Motor IN2** | GPIO 16 | Motor direction control 2 |
+| **Motor EnB (PWM)** | GPIO 4 | Motor speed control / PWM channel |
+| **STBY (Standby)** | GPIO 22 | Motor driver standby pin |
+| **Gas Sensor** | GPIO 33 | Analog gas reading (`gasRead`) |
+| **Rain Sensor** | GPIO 34 | Rain module digital/analog reading (`rainRead`) |
+| **Photoresistor** | GPIO 35 | Analog light level reading (`lightRead`) |
 
 ---
 
-## Power Architecture
+## Software & Dependencies
 
-To maintain strict compliance with single-power-supply rules while protecting the microcontroller from voltage sags, the system uses a regulated shared-rail topology:
+The firmware is written in C++ for the **Arduino IDE** (targeting the ESP32 platform). Ensure you have the following libraries installed via the Arduino Library Manager:
 
-1. **Power Input:** The 3-cell 18650 battery pack connects directly to the **12V** and **GND** screw terminals on the L298N motor driver.
-2. **Logic & Sensor Supply:** The L298N's onboard voltage regulator steps down the battery input, supplying a clean **5V** from its output terminal to the ESP32 and the MQ sensor VCC.
-3. **Common Ground:** A dedicated ground bridge connects the L298N `GND` terminal back to the ESP32 `GND` pin.
+* `DHT sensor library` (by Adafruit)
+* `WiFi` (Built-in for ESP32)
+* `HTTPClient` (Built-in for ESP32)
+* `<algorithm>` (Standard C++ library)
+
+---
+
+## Configuration & Setup
+
+1. **Clone the Repository:**
+```bash
+git clone https://github.com/your-username/multi-hazard-window-protection.git
+
+```
 
 
-## Mechanical Design 
+2. **Configure Wi-Fi and Notifications:**
+Open the source file and update your network credentials and notification topic:
+```cpp
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+const char* ntfy_topic = "your-unique-ntfy-topic-name";
 
-The physical actuation relies on a **Direct-Drive Ultra-Short Crank Linkage**:
+```
 
-* **Motor Cradle:** A custom 3D-printed clamshell mount rigidly secures the 25mm JGA25-370 motor cylinder to the fixed window frame.
-* **Crank Arm:** A minimized 1cm radius arm locks onto the motor's D-shaped output shaft, maximizing mechanical advantage and preventing motor stalling under load.
-* **Push Rod:** Connects the crank pin to a pivoting bracket mounted on the moving window sash.
+
+3. **Upload Firmware:**
+* Select your ESP32 board and correct COM port in the Arduino IDE.
+* Compile and flash the code to your ESP32 board.
